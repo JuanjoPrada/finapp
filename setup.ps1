@@ -15,7 +15,7 @@ Write-Output "Creando estructura de carpetas..."
 New-Item -ItemType Directory -Force -Path "src\components" | Out-Null
 
 # ---------------------------
-# Crear src/firebase.js (sin cambios en funcionalidad)
+# Crear src/firebase.js
 # ---------------------------
 Write-Output "Creando src\firebase.js..."
 @'
@@ -41,7 +41,7 @@ const analytics = getAnalytics(app);
 '@ | Set-Content -Path "src\firebase.js"
 
 # ---------------------------
-# Crear src/i18n.js (idiomas)
+# Crear src/i18n.js
 # ---------------------------
 Write-Output "Creando src\i18n.js..."
 @'
@@ -140,7 +140,7 @@ export default i18n;
 '@ | Set-Content -Path "src\i18n.js"
 
 # ---------------------------
-# Crear src/App.js con rutas nuevas y tema responsive
+# Crear src/App.js
 # ---------------------------
 Write-Output "Creando src\App.js..."
 @'
@@ -209,7 +209,7 @@ root.render(<App />);
 '@ | Set-Content -Path "src\index.js"
 
 # ---------------------------
-# Crear src/components/Login.js (sin cambios importantes)
+# Crear src/components/Login.js
 # ---------------------------
 Write-Output "Creando src\components\Login.js..."
 @'
@@ -253,7 +253,7 @@ export default Login;
 '@ | Set-Content -Path "src\components\Login.js"
 
 # ---------------------------
-# Crear src/components/Register.js (sin cambios importantes)
+# Crear src/components/Register.js
 # ---------------------------
 Write-Output "Creando src\components\Register.js..."
 @'
@@ -302,7 +302,6 @@ export default Register;
 
 # ---------------------------
 # Crear src/components/Dashboard.js
-# Actualizamos el menú para incluir pestañas nuevas
 # ---------------------------
 Write-Output "Creando src\components\Dashboard.js..."
 @'
@@ -407,7 +406,6 @@ export default Dashboard;
 
 # ---------------------------
 # Crear src/components/Transactions.js
-# Agregamos campos para "month" y botones para editar y borrar.
 # ---------------------------
 Write-Output "Creando src\components\Transactions.js..."
 @'
@@ -428,7 +426,7 @@ function Transactions() {
   const [category, setCategory] = useState("");
   const [note, setNote] = useState("");
   const [date, setDate] = useState(dayjs());
-  const [month, setMonth] = useState(dayjs().format("MMMM")); // e.g., "February"
+  const [month, setMonth] = useState(dayjs().format("MMMM"));
   const [type, setType] = useState("expense");
   const [transactions, setTransactions] = useState([]);
   const [editingId, setEditingId] = useState(null);
@@ -607,8 +605,7 @@ export default Transactions;
 '@ | Set-Content -Path "src\components\Transactions.js"
 
 # ---------------------------
-# Crear src/components/BudgetTracker.js (nuevo componente)
-# Este componente calcula el presupuesto diario disponible en base al presupuesto mensual y los gastos del mes.
+# Crear src/components/BudgetTracker.js
 # ---------------------------
 Write-Output "Creando src\components\BudgetTracker.js..."
 @'
@@ -621,7 +618,7 @@ import { onAuthStateChanged } from "firebase/auth";
 
 function BudgetTracker() {
   const [user, setUser] = useState(null);
-  const [monthlyBudget, setMonthlyBudget] = useState(800); // Puedes ajustar el presupuesto mensual predeterminado o permitir configurarlo en Settings.
+  const [monthlyBudget, setMonthlyBudget] = useState(800);
   const [spent, setSpent] = useState(0);
   const [dailyLimit, setDailyLimit] = useState(0);
 
@@ -679,8 +676,7 @@ export default BudgetTracker;
 '@ | Set-Content -Path "src\components\BudgetTracker.js"
 
 # ---------------------------
-# Crear src/components/CommonAccounts.js (nuevo componente para gestionar cuentas comunes)
-# Este componente permitirá crear y listar múltiples cuentas comunes.
+# Crear src/components/CommonAccounts.js
 # ---------------------------
 Write-Output "Creando src\components\CommonAccounts.js..."
 @'
@@ -724,8 +720,7 @@ function CommonAccounts() {
     try {
       await addDoc(collection(db, "users", user.uid, "commonAccounts"), {
         name: accountName,
-        createdAt: new Date(),
-        // Aquí podrías agregar más campos, como miembros, tope de gastos, etc.
+        createdAt: new Date()
       });
       setAccountName("");
     } catch (error) {
@@ -770,273 +765,6 @@ function CommonAccounts() {
 
 export default CommonAccounts;
 '@ | Set-Content -Path "src\components\CommonAccounts.js"
-
-# ---------------------------
-# Crear src/components/Goals.js (mantendremos la funcionalidad anterior con leve integración)
-# ---------------------------
-Write-Output "Creando src\components\Goals.js..."
-@'
-import React, { useState, useEffect } from "react";
-import { auth, db } from "../firebase";
-import { collection, addDoc, onSnapshot, doc, updateDoc } from "firebase/firestore";
-import { Button, TextField, Typography, Box, Grid, Paper } from "@mui/material";
-import { useTranslation } from "react-i18next";
-import { onAuthStateChanged } from "firebase/auth";
-
-function Goals() {
-  const { t } = useTranslation();
-  const [user, setUser] = useState(null);
-  const [goalDescription, setGoalDescription] = useState("");
-  const [targetAmount, setTargetAmount] = useState("");
-  const [goals, setGoals] = useState([]);
-
-  useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
-    return () => unsubscribeAuth();
-  }, []);
-
-  useEffect(() => {
-    if (!user) return;
-    const unsubscribe = onSnapshot(collection(db, "users", user.uid, "goals"), (snapshot) => {
-      const goalsArray = [];
-      snapshot.forEach((doc) => {
-        goalsArray.push({ id: doc.id, ...doc.data() });
-      });
-      setGoals(goalsArray);
-    });
-    return () => unsubscribe();
-  }, [user]);
-
-  const handleAddGoal = async () => {
-    if (!goalDescription || !targetAmount) {
-      alert("Por favor complete todos los campos.");
-      return;
-    }
-    if (!user) return;
-    try {
-      await addDoc(collection(db, "users", user.uid, "goals"), {
-        description: goalDescription,
-        targetAmount: parseFloat(targetAmount),
-        currentAmount: 0,
-        createdAt: new Date()
-      });
-      setGoalDescription("");
-      setTargetAmount("");
-    } catch (error) {
-      console.error(error);
-      alert(error.message);
-    }
-  };
-
-  const handleUpdateGoal = async (goalId, newAmount) => {
-    if (!user) return;
-    const goalRef = doc(db, "users", user.uid, "goals", goalId);
-    try {
-      await updateDoc(goalRef, {
-        currentAmount: newAmount
-      });
-    } catch (error) {
-      console.error(error);
-      alert(error.message);
-    }
-  };
-
-  if (!user) return <div>Cargando...</div>;
-
-  return (
-    <Box sx={{ mt: 3 }}>
-      <Typography variant="h6">{t("goals")}</Typography>
-      <Grid container spacing={2} sx={{ mt: 2 }}>
-        <Grid item xs={12} md={6}>
-          <TextField label="Descripción de la meta" value={goalDescription} onChange={(e) => setGoalDescription(e.target.value)} fullWidth />
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <TextField label="Cantidad objetivo" type="number" value={targetAmount} onChange={(e) => setTargetAmount(e.target.value)} fullWidth />
-        </Grid>
-      </Grid>
-      <Button variant="contained" color="primary" sx={{ mt: 2 }} onClick={handleAddGoal}>
-        Agregar Meta
-      </Button>
-      <Box sx={{ mt: 4 }}>
-        {goals.map((goal) => (
-          <Paper key={goal.id} sx={{ p: 2, mb: 2 }}>
-            <Typography variant="subtitle1">{goal.description}</Typography>
-            <Typography variant="body2">
-              {`Objetivo: ${goal.targetAmount} - Actual: ${goal.currentAmount}`}
-            </Typography>
-            <Button variant="outlined" sx={{ mt: 1 }} onClick={() => handleUpdateGoal(goal.id, goal.currentAmount + 50)}>
-              Contribuir +50
-            </Button>
-          </Paper>
-        ))}
-      </Box>
-    </Box>
-  );
-}
-
-export default Goals;
-'@ | Set-Content -Path "src\components\Goals.js"
-
-# ---------------------------
-# Crear src/components/Analytics.js (sin cambios importantes)
-# ---------------------------
-Write-Output "Creando src\components\Analytics.js..."
-@'
-import React, { useEffect, useState } from "react";
-import { auth, db } from "../firebase";
-import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
-import { Box, Typography } from "@mui/material";
-import { Bar } from "react-chartjs-2";
-import dayjs from "dayjs";
-import { onAuthStateChanged } from "firebase/auth";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend
-} from "chart.js";
-
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
-
-function Analytics() {
-  const [user, setUser] = useState(null);
-  const [transactions, setTransactions] = useState([]);
-
-  useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
-    return () => unsubscribeAuth();
-  }, []);
-
-  useEffect(() => {
-    if (!user) return;
-    const q = query(
-      collection(db, "users", user.uid, "transactions"),
-      orderBy("date", "asc")
-    );
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const transArray = [];
-      snapshot.forEach((doc) => {
-        transArray.push({ id: doc.id, ...doc.data() });
-      });
-      setTransactions(transArray);
-    });
-    return () => unsubscribe();
-  }, [user]);
-
-  if (!user) return <div>Cargando...</div>;
-
-  const groupedData = {};
-  transactions.forEach(tr => {
-    const dateKey = dayjs(tr.date.seconds * 1000).format("YYYY-MM-DD");
-    if (!groupedData[dateKey]) {
-      groupedData[dateKey] = { income: 0, expense: 0 };
-    }
-    if (tr.type === "income") {
-      groupedData[dateKey].income += tr.amount;
-    } else {
-      groupedData[dateKey].expense += tr.amount;
-    }
-  });
-  const labels = Object.keys(groupedData);
-  const incomeData = labels.map(date => groupedData[date].income);
-  const expenseData = labels.map(date => groupedData[date].expense);
-
-  const data = {
-    labels,
-    datasets: [
-      {
-        label: "Ingresos",
-        data: incomeData,
-        backgroundColor: "green"
-      },
-      {
-        label: "Gastos",
-        data: expenseData,
-        backgroundColor: "red"
-      }
-    ]
-  };
-
-  return (
-    <Box sx={{ mt: 4 }}>
-      <Typography variant="h6">Análisis de transacciones</Typography>
-      <Bar data={data} />
-    </Box>
-  );
-}
-
-export default Analytics;
-'@ | Set-Content -Path "src\components\Analytics.js"
-
-# ---------------------------
-# Crear src/components/Reminders.js (sin cambios importantes)
-# ---------------------------
-Write-Output "Creando src\components\Reminders.js..."
-@'
-import React, { useEffect, useState } from "react";
-import { auth, db } from "../firebase";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
-import { Box, Typography } from "@mui/material";
-import dayjs from "dayjs";
-import { onAuthStateChanged } from "firebase/auth";
-
-function Reminders({ dailyBudget = 800 }) {
-  const [user, setUser] = useState(null);
-  const [todayExpense, setTodayExpense] = useState(0);
-
-  useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
-    return () => unsubscribeAuth();
-  }, []);
-
-  useEffect(() => {
-    if (!user) return;
-    const today = dayjs().startOf("day").toDate();
-    const tomorrow = dayjs().endOf("day").toDate();
-    const q = query(
-      collection(db, "users", user.uid, "transactions"),
-      where("date", ">=", today),
-      where("date", "<=", tomorrow),
-      where("type", "==", "expense")
-    );
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      let total = 0;
-      snapshot.forEach((doc) => {
-        total += doc.data().amount;
-      });
-      setTodayExpense(total);
-    });
-    return () => unsubscribe();
-  }, [user, dailyBudget]);
-
-  if (!user) return <div>Cargando...</div>;
-
-  return (
-    <Box sx={{ mt: 2 }}>
-      {todayExpense > dailyBudget ? (
-        <Typography color="error">
-          Atención: Has superado tu presupuesto diario de {dailyBudget}. Gastaste {todayExpense}.
-        </Typography>
-      ) : (
-        <Typography color="primary">
-          Estás dentro del presupuesto diario.
-        </Typography>
-      )}
-    </Box>
-  );
-}
-
-export default Reminders;
-'@ | Set-Content -Path "src\components\Reminders.js"
 
 Write-Output "Todos los archivos han sido creados correctamente."
 
